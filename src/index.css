@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* Global overrides and resets */
+* {
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Keep your custom Electron drag styles below */
+body {
+  margin: 0;
+  background-color: oklch(35.666% 0.02049 254.138);
+}
