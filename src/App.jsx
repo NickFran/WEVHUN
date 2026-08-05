@@ -1,7 +1,9 @@
+import * as STORE from "./store/STORE.js";
+
 import './App.css'
 import './index.css'
+import { useEffect } from 'react'
 
-import useTabStore from "./store/store_tab.js";
 import WindowIcon from "./components/Window Shell/WindowIcon.jsx";
 import WindowTab from "./components/Window Shell/WindowTab.jsx";
 import View0 from "./components/Main/Views/View0.jsx";
@@ -11,8 +13,12 @@ import View3 from "./components/Main/Views/View3.jsx";
 import View4 from "./components/Main/Views/View4.jsx";
 
 function App() {
-  const activeTab = useTabStore((state) => state.activeTab)
-  const setActiveTab = useTabStore((state) => state.setActiveTab)
+  const activeTab = STORE.store_tab((state) => state.activeTab)
+  const setActiveTab = STORE.store_tab((state) => state.setActiveTab)
+
+  useEffect(() => {
+    window.browserTool?.setActive(activeTab === 0)
+  }, [activeTab])
 
   return (
     <>
@@ -26,12 +32,12 @@ function App() {
         <WindowTab tabName="Exploit" ApproachLevel="4" onClick={() => setActiveTab(4)} />
       </div>
     </div>
-    <div id="windowViewport">
-      <div className={activeTab === 0 ? '' : 'hidden'}><View0 /></div>
-      <div className={activeTab === 1 ? '' : 'hidden'}><View1 /></div>
-      <div className={activeTab === 2 ? '' : 'hidden'}><View2 /></div>
-      <div className={activeTab === 3 ? '' : 'hidden'}><View3 /></div>
-      <div className={activeTab === 4 ? '' : 'hidden'}><View4 /></div>
+    <div id="windowViewport" className="h-[calc(100vh-3rem)]">
+      <div className={activeTab === 0 ? 'h-full' : 'hidden'}><View0 /></div>
+      <div className={activeTab === 1 ? 'h-full' : 'hidden'}><View1 /></div>
+      <div className={activeTab === 2 ? 'h-full' : 'hidden'}><View2 /></div>
+      <div className={activeTab === 3 ? 'h-full' : 'hidden'}><View3 /></div>
+      <div className={activeTab === 4 ? 'h-full' : 'hidden'}><View4 /></div>
     </div>
     </>
   )

@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 
-const useTabStore = create((set) => ({
+const store_tab = create((set) => ({
   activeTab: 0,
   setActiveTab: (tab) => set({ activeTab: tab }),
 }))
 
-export default useTabStore
+export default store_tab
