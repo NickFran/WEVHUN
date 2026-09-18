@@ -41,6 +41,22 @@ function createWindow() {
         return browserTool.navigate(url);
     });
 
+    ipcMain.handle('browser:URLHistoryForward', async () => {
+        return browserTool.URLHistoryForward();
+    });
+
+    ipcMain.handle('browser:URLHistoryBack', async () => {
+        return browserTool.URLHistoryBack();
+    });
+
+    ipcMain.handle('browser:URLHistoryTruncate', async () => {
+        return browserTool.URLHistoryTruncate();
+    });
+
+    ipcMain.handle('browser:URLHistoryPush', async (_event, newUrl) => {
+        return browserTool.URLHistoryPush(newUrl);
+    });
+
     // IMPORTANT: Change the port if Vite is running on a different one (e.g., 5173, 3000)
     const isDev = !app.isPackaged; 
 

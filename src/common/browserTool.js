@@ -6,12 +6,37 @@ import { chromium } from 'playwright';
 const FALLBACK_TOP_BAR_HEIGHT = 48;
 const FALLBACK_BROWSER_TOOLBAR_HEIGHT = 44;
 
-export function createBrowserTool(mainWindow) {
+function createBrowserTool(mainWindow) {
+
     let browserView;
     let playwrightBrowser;
     let browserViewPage;
     let browserViewIsAttached = false;
     let lastBrowserBounds;
+
+    const getBrowserState = () => STORE.store_browser.getState();
+
+    function commitToHistory(history, pointer) {
+        STORE.store_browser.setState({
+            URLHistoryStack: history,
+            URLHistoryStackPointer: pointer,
+        });
+    }
+
+    function getTrimmedHistory(state) {
+        return state.URLHistoryStack.slice(0, state.URLHistoryStackPointer + 1);
+    }
+
+    function truncateHistory() {
+        const state = getBrowserState();
+        commitToHistory(getTrimmedHistory(state), state.URLHistoryStackPointer);
+    }
+
+    function pushToHistory(url) {
+        const state = getBrowserState();
+        const nextHistory = [...getTrimmedHistory(state), url];
+        commitToHistory(nextHistory, nextHistory.length - 1);
+    }
 
     function getFallbackBrowserBounds() {
         const [windowWidth, windowHeight] = mainWindow.getContentSize();
@@ -58,20 +83,74 @@ export function createBrowserTool(mainWindow) {
     }
 
     async function getBrowserPage() {
-        if (browserViewPage) return browserViewPage;
+        if (browserViewPage && !browserViewPage.isClosed()) return browserViewPage;
 
         if (!playwrightBrowser) {
             playwrightBrowser = await chromium.connectOverCDP('http://localhost:9222');
         }
 
         const context = playwrightBrowser.contexts()[0];
+        const pages = context?.pages() ?? [];
         const targetUrl = browserView.webContents.getURL();
-        browserViewPage = context.pages().find((page) => page.url() === targetUrl) ?? context.pages()[0];
+
+        browserViewPage = pages.find((page) => page.url() === targetUrl) ?? pages[0];
         return browserViewPage;
     }
 
+    async function navigate(url, shouldPushToHistory = false) {
+        const page = await getBrowserPage();
+        await page.goto(url);
+
+        const nextUrl = page.url();
+        STORE.store_browser.setState({ URL: nextUrl });
+
+        if (shouldPushToHistory) {
+            pushToHistory(nextUrl);
+        }
+
+        return nextUrl;
+    }
+
+    async function navigateHistory(step) {
+        const state = getBrowserState();
+        const nextPointer = state.URLHistoryStackPointer + step;
+
+        if (nextPointer < 0 || nextPointer >= state.URLHistoryStack.length) {
+            return state.URL;
+        }
+
+        const nextUrl = state.URLHistoryStack[nextPointer];
+        STORE.store_browser.setState({
+            URLHistoryStackPointer: nextPointer,
+            URL: nextUrl,
+        });
+
+        return navigate(nextUrl);
+    }
+
+    async function URLHistoryForward() {
+        return navigateHistory(1);
+    }
+
+    async function URLHistoryBack() {
+        return navigateHistory(-1);
+    }
+
+    function URLHistoryTruncate() {
+        truncateHistory();
+        return getBrowserState().URLHistoryStack;
+    }
+
+    function URLHistoryPush(newUrl) {
+        pushToHistory(newUrl);
+        return getBrowserState().URLHistoryStack;
+    }
+
     browserView = new WebContentsView();
-    browserView.webContents.loadURL(STORE.store_browser.getState().URL);
+    browserView.webContents.loadURL(getBrowserState().URL);
+
+    pushToHistory(getBrowserState().URL);
+
     updateBrowserViewBounds();
 
     mainWindow.on('resize', () => {
@@ -83,10 +162,12 @@ export function createBrowserTool(mainWindow) {
     return {
         setActive,
         setBounds: updateBrowserViewBounds,
-        async navigate(url) {
-            const page = await getBrowserPage();
-            await page.goto(url);
-            return page.url();
-        },
+        navigate,
+        URLHistoryForward,
+        URLHistoryBack,
+        URLHistoryTruncate,
+        URLHistoryPush,
     };
 }
+
+export { createBrowserTool };

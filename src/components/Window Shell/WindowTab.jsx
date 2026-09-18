@@ -11,7 +11,7 @@ function WindowTab({ tabName, ApproachLevel, onClick}) {
     onClick={onClick}
     className={`
     group flex items-center gap-2 px-3 py-1 mt-2 mr-[2px] border-x border-t border-gray-400 rounded-t-md cursor-pointer min-w-[140px] max-w-[240px] transition-colors
-    ${isActive ? 'bg-gray-100' : 'bg-gray-600 hover:bg-gray-300'}`}>
+    ${isActive ? 'bg-gray-100' : 'bg-gray-600 hover:bg-gray-500'}`}>
         
         {/* 2. The Favicon */}
         <img 
