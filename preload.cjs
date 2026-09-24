@@ -7,5 +7,9 @@ contextBridge.exposeInMainWorld('browserTool', {
     URLHistoryForward: () => ipcRenderer.invoke('browser:URLHistoryForward'),
     URLHistoryBack: () => ipcRenderer.invoke('browser:URLHistoryBack'),
     URLHistoryTruncate: () => ipcRenderer.invoke('browser:URLHistoryTruncate'),
-    URLHistoryPush: (newUrl) => ipcRenderer.invoke('browser:URLHistoryPush', newUrl),
+    onUrlChanged: (callback) => {
+        const listener = (_event, nextUrl) => callback(nextUrl);
+        ipcRenderer.on('browser:urlChanged', listener);
+        return () => ipcRenderer.removeListener('browser:urlChanged', listener);
+    },
 });

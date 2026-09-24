@@ -13,6 +13,8 @@ function createBrowserTool(mainWindow) {
     let browserViewPage;
     let browserViewIsAttached = false;
     let lastBrowserBounds;
+    let pendingHistoryAction = 'push';
+    let navigationChain = Promise.resolve();
 
     const getBrowserState = () => STORE.store_browser.getState();
 
@@ -34,8 +36,36 @@ function createBrowserTool(mainWindow) {
 
     function pushToHistory(url) {
         const state = getBrowserState();
+        const currentUrl = state.URLHistoryStack[state.URLHistoryStackPointer];
+
+        if (currentUrl === url) {
+            return;
+        }
+
         const nextHistory = [...getTrimmedHistory(state), url];
         commitToHistory(nextHistory, nextHistory.length - 1);
+    }
+
+    function syncHistoryOnNavigation(url) {
+        const state = getBrowserState();
+
+        if (pendingHistoryAction === 'back') {
+            const nextPointer = Math.max(state.URLHistoryStackPointer - 1, 0);
+            commitToHistory(state.URLHistoryStack, nextPointer);
+        } else if (pendingHistoryAction === 'forward') {
+            const nextPointer = Math.min(state.URLHistoryStackPointer + 1, state.URLHistoryStack.length - 1);
+            commitToHistory(state.URLHistoryStack, nextPointer);
+        } else {
+            pushToHistory(url);
+        }
+
+        pendingHistoryAction = 'push';
+    }
+
+    function queueNavigation(action) {
+        const nextOperation = navigationChain.then(action);
+        navigationChain = nextOperation.catch(() => {});
+        return nextOperation;
     }
 
     function getFallbackBrowserBounds() {
@@ -98,34 +128,45 @@ function createBrowserTool(mainWindow) {
     }
 
     async function navigate(url, shouldPushToHistory = false) {
-        const page = await getBrowserPage();
-        await page.goto(url);
+        return queueNavigation(async () => {
+            pendingHistoryAction = shouldPushToHistory ? 'push' : 'push';
 
-        const nextUrl = page.url();
-        STORE.store_browser.setState({ URL: nextUrl });
-
-        if (shouldPushToHistory) {
-            pushToHistory(nextUrl);
-        }
-
-        return nextUrl;
+            const page = await getBrowserPage();
+            await page.goto(url);
+            return page.url();
+        });
     }
 
     async function navigateHistory(step) {
-        const state = getBrowserState();
-        const nextPointer = state.URLHistoryStackPointer + step;
+        return queueNavigation(async () => {
+            const state = getBrowserState();
+            const canTraverse = step < 0
+                ? browserView.webContents.canGoBack()
+                : browserView.webContents.canGoForward();
 
-        if (nextPointer < 0 || nextPointer >= state.URLHistoryStack.length) {
-            return state.URL;
-        }
+            if (!canTraverse) {
+                return state.URL;
+            }
 
-        const nextUrl = state.URLHistoryStack[nextPointer];
-        STORE.store_browser.setState({
-            URLHistoryStackPointer: nextPointer,
-            URL: nextUrl,
+            pendingHistoryAction = step < 0 ? 'back' : 'forward';
+
+            if (step < 0) {
+                browserView.webContents.goBack();
+            } else {
+                browserView.webContents.goForward();
+            }
+
+            return new Promise((resolve) => {
+                const handleNavigation = (_event, nextUrl) => {
+                    browserView.webContents.removeListener('did-navigate', handleNavigation);
+                    browserView.webContents.removeListener('did-navigate-in-page', handleNavigation);
+                    resolve(nextUrl);
+                };
+
+                browserView.webContents.on('did-navigate', handleNavigation);
+                browserView.webContents.on('did-navigate-in-page', handleNavigation);
+            });
         });
-
-        return navigate(nextUrl);
     }
 
     async function URLHistoryForward() {
@@ -141,13 +182,20 @@ function createBrowserTool(mainWindow) {
         return getBrowserState().URLHistoryStack;
     }
 
-    function URLHistoryPush(newUrl) {
-        pushToHistory(newUrl);
-        return getBrowserState().URLHistoryStack;
+    function handleNavigated(nextUrl) {
+        STORE.store_browser.setState({ URL: nextUrl });
+        syncHistoryOnNavigation(nextUrl);
+        mainWindow.webContents.send('browser:urlChanged', nextUrl);
     }
 
     browserView = new WebContentsView();
     browserView.webContents.loadURL(getBrowserState().URL);
+    browserView.webContents.on('did-navigate', (_event, nextUrl) => {
+        handleNavigated(nextUrl);
+    });
+    browserView.webContents.on('did-navigate-in-page', (_event, nextUrl) => {
+        handleNavigated(nextUrl);
+    });
 
     pushToHistory(getBrowserState().URL);
 
@@ -166,7 +214,6 @@ function createBrowserTool(mainWindow) {
         URLHistoryForward,
         URLHistoryBack,
         URLHistoryTruncate,
-        URLHistoryPush,
     };
 }
 

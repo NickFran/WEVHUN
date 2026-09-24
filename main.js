@@ -53,10 +53,6 @@ function createWindow() {
         return browserTool.URLHistoryTruncate();
     });
 
-    ipcMain.handle('browser:URLHistoryPush', async (_event, newUrl) => {
-        return browserTool.URLHistoryPush(newUrl);
-    });
-
     // IMPORTANT: Change the port if Vite is running on a different one (e.g., 5173, 3000)
     const isDev = !app.isPackaged; 
 
