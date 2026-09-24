@@ -1,16 +1,7 @@
-# React + Vite
+# WEVHUN
+<img width="2559" height="1349" alt="ProjectWallpaper" src="https://github.com/user-attachments/assets/bd4e73e7-6452-4dbc-a8c6-40133346ce7b" />
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Web Exploitation and Vulnerability Hunter
+This project is currently a "work in progress", more information on project details will be added soon. 
 
-Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
