@@ -1,7 +1,9 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { createBrowserTool } from './src/common/browserTool.js';
+import { createBrowserToolMain } from './src/common/browserToolMain.js';
+import { createTerminalToolMain } from './src/common/terminalToolMain.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +16,10 @@ const __dirname = path.dirname(__filename);
 app.commandLine.appendSwitch('remote-debugging-port', '9222');
 
 let mainWindow;
+function sendTerminalEvent(channel, payload) {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.webContents.send(channel, payload);
+}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -27,31 +33,14 @@ function createWindow() {
         }
     });
 
-    const browserTool = createBrowserTool(mainWindow);
-
-    ipcMain.handle('browser:setActive', (_event, isActive) => {
-        browserTool.setActive(isActive);
+    const browserToolMain = createBrowserToolMain(mainWindow);
+    const terminalToolMain = createTerminalToolMain({
+        app,
+        sendEvent: sendTerminalEvent,
     });
 
-    ipcMain.handle('browser:setBounds', (_event, rect) => {
-        browserTool.setBounds(rect);
-    });
-
-    ipcMain.handle('browser:navigate', async (_event, url) => {
-        return browserTool.navigate(url);
-    });
-
-    ipcMain.handle('browser:URLHistoryForward', async () => {
-        return browserTool.URLHistoryForward();
-    });
-
-    ipcMain.handle('browser:URLHistoryBack', async () => {
-        return browserTool.URLHistoryBack();
-    });
-
-    ipcMain.handle('browser:URLHistoryTruncate', async () => {
-        return browserTool.URLHistoryTruncate();
-    });
+    browserToolMain.registerIpc(ipcMain);
+    terminalToolMain.registerIpc(ipcMain);
 
     // IMPORTANT: Change the port if Vite is running on a different one (e.g., 5173, 3000)
     const isDev = !app.isPackaged; 

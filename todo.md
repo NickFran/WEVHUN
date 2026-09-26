@@ -18,3 +18,11 @@
 
 
 * 'webContents.goForward' is deprecated and will be removed. Need use 'webContents.navigationHistory.goForward' instead.
+* What to do about multiple windows when clicking links?
+* add refresh btn
+* auto open playwrights dev tools (or add debug btn on browser bar for it)
+* terminal tool needs a dedicated HTTP button
+* indent the terminal, it looks so much better and also 
+* y overflow on terminal causes scroll bar to take up width, fix later
+* add clear command to terminal Tool (it currently does nothing)
+* add a copy btn at the top right of the command output blocks
